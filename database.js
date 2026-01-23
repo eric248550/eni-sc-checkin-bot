@@ -1,6 +1,7 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -12,7 +13,7 @@ const pool = new Pool({
 });
 
 /**
- * Get eligible wallets for check-in
+ * Get eligible wallets for check-in (OLD FUNCTION - DEPRECATED)
  * Criteria: 
  * - has_payment = FALSE
  * - has_incoming = TRUE
@@ -38,6 +39,84 @@ export async function getEligibleWallets() {
     return result.rows;
   } catch (error) {
     console.error('Database query error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get new wallets for today's check-in
+ * Criteria:
+ * - eni_wallet.received_amount = 0 (new wallets)
+ * - kaia_2048_users.connected_at = TODAY
+ * - Join on kaia_2048_users.eni_wallet_address = eni_wallet.address
+ */
+export async function getNewWalletsForToday(todayDate, limit) {
+  const query = `
+    SELECT 
+      ew.id, 
+      ew.address, 
+      ew.private_key, 
+      ew.received_amount, 
+      ew.has_game_record, 
+      ew.updated_at,
+      ku.id as user_id,
+      ku.connected_at
+    FROM eni_wallet ew
+    INNER JOIN kaia_2048_users ku ON ku.eni_wallet_address = ew.address
+    WHERE 
+      ku.platform = 'tofu'
+      AND ku.note != 'not on whitelist'
+      AND ew.received_amount = 0
+      AND DATE(ku.connected_at) = DATE($1)
+    ORDER BY RANDOM()
+    LIMIT $2
+  `;
+  
+  try {
+    const result = await pool.query(query, [todayDate, limit]);
+    console.log(`📝 Found ${result.rows.length} new wallets for ${todayDate} (target: ${limit})`);
+    return result.rows;
+  } catch (error) {
+    console.error('Database query error (new wallets):', error);
+    throw error;
+  }
+}
+
+/**
+ * Get old wallets for today's check-in
+ * Criteria:
+ * - eni_wallet.received_amount >= 0.009 (old wallets with balance)
+ * - kaia_2048_users.connected_at < TODAY
+ * - Join on kaia_2048_users.eni_wallet_address = eni_wallet.address
+ */
+export async function getOldWalletsForToday(todayDate, limit) {
+  const query = `
+    SELECT 
+      ew.id, 
+      ew.address, 
+      ew.private_key, 
+      ew.received_amount, 
+      ew.has_game_record, 
+      ew.updated_at,
+      ku.id as user_id,
+      ku.connected_at
+    FROM eni_wallet ew
+    INNER JOIN kaia_2048_users ku ON ku.eni_wallet_address = ew.address
+    WHERE 
+      ku.platform = 'tofu'
+      AND ku.note != 'not on whitelist'
+      AND ew.received_amount >= 0.009
+      AND DATE(ku.connected_at) < DATE($1)
+    ORDER BY RANDOM()
+    LIMIT $2
+  `;
+  
+  try {
+    const result = await pool.query(query, [todayDate, limit]);
+    console.log(`📝 Found ${result.rows.length} old wallets for ${todayDate} (target: ${limit})`);
+    return result.rows;
+  } catch (error) {
+    console.error('Database query error (old wallets):', error);
     throw error;
   }
 }
@@ -78,6 +157,62 @@ export async function logCheckIn(walletId, walletAddress, txHash, gasUsed, block
   // Optional: Create a check-in log table to track all transactions
   // For now, just log to console
   console.log(`   📝 Check-in logged: ${walletAddress} at block ${blockNumber}`);
+}
+
+/**
+ * Generate JWT token for purchase API authentication
+ */
+function generateJWTToken(userId, walletAddress) {
+  const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+  const payload = {
+    sub: userId,
+    name: walletAddress,
+    platform: 'tofu'
+  };
+  
+  // Token expires in 1 hour
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+}
+
+/**
+ * Refill EGAS to a wallet via purchase API
+ * @param {string} userId - The user ID from kaia_2048_users
+ * @param {string} walletAddress - The wallet address
+ * @returns {Promise<Object>} Purchase result
+ */
+export async function refillEGAS(userId, walletAddress) {
+  const PURCHASE_API_URL = process.env.PURCHASE_API_URL || 'http://localhost:3000/api/line-point-store/purchase';
+  const STORE_ITEM_ID = process.env.STORE_ITEM_ID || '4a4d0708-546e-4f84-b45b-4d6704af6549';
+  
+  try {
+    // Generate JWT token
+    const token = generateJWTToken(userId, walletAddress);
+    
+    // Make purchase API call
+    const response = await fetch(PURCHASE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        store_item_id: STORE_ITEM_ID,
+        quantity: 1
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Purchase API failed: ${response.status} - ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log(`   ✅ EGAS refilled for ${walletAddress}`);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(`   ❌ EGAS refill failed for ${walletAddress}:`, error.message);
+    return { success: false, error: error.message };
+  }
 }
 
 /**

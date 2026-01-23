@@ -11,7 +11,9 @@
     "run-once": "RUN_ONCE=true node index.js",
     "dev": "node --watch index.js",
     "test": "node test-connection.js",
-    "create-wallets": "node create-wallets-for-tofu-users.js"
+    "create-wallets": "node create-wallets-for-tofu-users.js",
+    "balance-dates": "node balance-wallet-dates.js",
+    "debug-query": "node debug-wallet-query.js"
   },
   "keywords": [
     "eni",
@@ -22,8 +24,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "cron-parser": "^4.9.0",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.0",
+    "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
     "pg": "^8.11.3"
   }
