@@ -189,7 +189,7 @@ async function main() {
     await getContractInfo();
     
     const todayDate = formatDate(new Date());
-    const softCapMultiplier = 1.10; // Allow up to 10% over target
+    const softCapMultiplier = 1.2; // Allow up to 20% over target
     const softCap = Math.floor(todayTarget.totalInteractions * softCapMultiplier);
     
     console.log(`\n📅 Processing for ${todayDate}`);
@@ -202,8 +202,8 @@ async function main() {
     console.log('STEP 1: Getting wallets from database');
     console.log('='.repeat(60));
     
-    const newWallets = await getNewWalletsForToday(todayDate, todayTarget.newWallets);
-    const oldWallets = await getOldWalletsForToday(todayDate, todayTarget.oldWallets);
+    const newWallets = await getNewWalletsForToday(todayDate, todayTarget.newWallets * softCapMultiplier);
+    const oldWallets = await getOldWalletsForToday(todayDate, todayTarget.oldWallets * softCapMultiplier);
     const allWallets = [...newWallets, ...oldWallets];
     
     console.log(`\n📊 Wallet Summary:`);
