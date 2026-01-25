@@ -13,12 +13,12 @@ import { executeCheckIn, getContractInfo, getCacheStatus } from './contract.js';
 import { getTodayTarget, formatDate, displayTodayTarget } from './constants.js';
 
 // Configuration
-const BATCH_SIZE = parseInt(process.env.BATCH_SIZE) || 1; // Number of parallel transactions per batch (reduced for rate limits)
+const BATCH_SIZE = parseInt(process.env.BATCH_SIZE) || 3; // Number of parallel transactions per batch (reduced for rate limits)
 const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 2; // Maximum retry attempts for failed transactions
 const RETRY_DELAY = parseInt(process.env.RETRY_DELAY) || 1000; // Delay before retrying failed transactions (ms)
 const REFILL_COOLDOWN_MS = parseInt(process.env.REFILL_COOLDOWN_MS) || 30000; // Wait 30s after refill before check-in
 // const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '0 8 * * *'; // Default: Daily at 8:00 AM
-const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '37 16 * * *'; // test
+const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '26 15 * * *'; // test
 const BUFFER_TIME_MINUTES = parseInt(process.env.BUFFER_TIME_MINUTES) || 10; // Buffer time before next cron (minutes)
 
 
@@ -188,7 +188,10 @@ async function main() {
     // Display contract information
     await getContractInfo();
     
-    const todayDate = formatDate(new Date());
+    // TODO: 測試用
+    const todayDate = '2026-01-23';
+
+    // const todayDate = formatDate(new Date());
     const softCapMultiplier = 1.2; // Allow up to 20% over target
     const softCap = Math.floor(todayTarget.totalInteractions * softCapMultiplier);
     
@@ -202,8 +205,8 @@ async function main() {
     console.log('STEP 1: Getting wallets from database');
     console.log('='.repeat(60));
     
-    const newWallets = await getNewWalletsForToday(todayDate, todayTarget.newWallets * softCapMultiplier);
-    const oldWallets = await getOldWalletsForToday(todayDate, todayTarget.oldWallets * softCapMultiplier);
+    const newWallets = await getNewWalletsForToday(todayDate, Math.floor(todayTarget.newWallets * softCapMultiplier));
+    const oldWallets = await getOldWalletsForToday(todayDate, Math.floor(todayTarget.oldWallets * softCapMultiplier));
     const allWallets = [...newWallets, ...oldWallets];
     
     console.log(`\n📊 Wallet Summary:`);

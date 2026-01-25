@@ -8,12 +8,13 @@ dotenv.config();
  * 
  * 1. Static Network: Chain ID 8217 hardcoded (saves 1 call per provider)
  * 2. Cached Gas Limit: Estimate once, reuse for all transactions (saves 1 call per tx after first)
- * 3. Cached Gas Price: Cache for 60 seconds (saves ~1 call per tx)
+ * 3. Cached Fee Data: Cache for 60 seconds (saves ~1 call per tx)
  * 4. Manual Nonce: Can be passed in to avoid fetching (optional, saves 1 call per tx)
  * 5. NO RECEIPT POLLING: Transaction sent and returned immediately (saves 10-12 calls per tx)
+ * 6. LEGACY TRANSACTIONS: Force Type 0 (legacy) transactions for compatibility and lower gas costs
  * 
  * RPC Calls per transaction:
- * - First transaction: 5 calls (balance, nonce, estimate, gasPrice, send)
+ * - First transaction: 5 calls (balance, nonce, estimate, feeData, send)
  * - Subsequent transactions: 3 calls (balance, nonce, send)
  * - Receipt polling: 0 calls (REMOVED - async confirmation)
  * 
@@ -104,9 +105,10 @@ async function getGasLimit(contract) {
 }
 
 /**
- * Get or cache gas price
+ * Get or cache gas price for legacy transactions
+ * Note: We always use legacy transactions (Type 0) for ENI network
  */
-async function getGasPrice(provider) {
+async function getGasPriceForLegacy(provider) {
   const now = Date.now();
   
   // Return cached gas price if still valid
@@ -114,15 +116,28 @@ async function getGasPrice(provider) {
     return cachedGasPrice;
   }
   
-  // Fetch new gas price (or use static value)
+  // Fetch gas price for legacy transaction
   try {
     const feeData = await provider.getFeeData();
-    cachedGasPrice = feeData.gasPrice;
+    
+    // IMPORTANT: For legacy transactions, we should use gasPrice, NOT maxFeePerGas
+    // maxFeePerGas is for EIP-1559 and is typically much higher
+    if (feeData.gasPrice && feeData.gasPrice > 0n) {
+      // Use the network's gasPrice (this is what legacy transactions use)
+      cachedGasPrice = feeData.gasPrice;
+      console.log(`   Fetched gas price: ${ethers.formatUnits(cachedGasPrice, 'gwei')} gwei`);
+    } else {
+      // Fallback to static gas price (100 gwei is reasonable for ENI)
+      console.log(`   No gasPrice from network, using static: 100 gwei`);
+      cachedGasPrice = ethers.parseUnits('100', 'gwei');
+    }
+    
     gasPriceCacheTime = now;
     return cachedGasPrice;
   } catch (error) {
-    // Fallback to static gas price for ENI (typically 25-50 gwei)
-    cachedGasPrice = ethers.parseUnits('25', 'gwei');
+    // Fallback to static gas price for ENI
+    console.log(`   Fee data fetch failed, using static gasPrice: 100 gwei`);
+    cachedGasPrice = ethers.parseUnits('100', 'gwei');
     gasPriceCacheTime = now;
     return cachedGasPrice;
   }
@@ -176,18 +191,40 @@ export async function executeCheckIn(privateKey, walletAddress, manualNonce = nu
     const gasLimit = await getGasLimit(contract);
     
     // Get cached gas price (0 or 1 RPC call: eth_gasPrice - cached for 60s)
-    const gasPrice = await getGasPrice(provider);
+    let gasPrice = await getGasPriceForLegacy(provider);
+    
+    // Safety check: Ensure gas price is reasonable (not more than 100 gwei)
+    const gasPriceInGwei = Number(ethers.formatUnits(gasPrice, 'gwei'));
+    const MAX_GAS_PRICE_GWEI = 100;
+    if (gasPriceInGwei > MAX_GAS_PRICE_GWEI) {
+      console.log(`   ⚠️  Gas price too high (${gasPriceInGwei} gwei), capping at ${MAX_GAS_PRICE_GWEI} gwei`);
+      gasPrice = ethers.parseUnits(MAX_GAS_PRICE_GWEI.toString(), 'gwei');
+    }
+    
+    // Check if balance is sufficient for gas
+    const estimatedGasCostInWei = gasLimit * gasPrice;
+    const estimatedGasCostInEgas = ethers.formatEther(estimatedGasCostInWei);
+    
+    if (balance < estimatedGasCostInWei) {
+      throw new Error(`Insufficient balance for gas. Need ${estimatedGasCostInEgas} EGAS, have ${balanceInEgas} EGAS`);
+    }
     
     // Small delay
     await delay(200);
     
     // Execute check-in (1 RPC call: eth_sendRawTransaction)
     console.log(`   Sending check-in transaction...`);
-    const tx = await contract.checkIn({
+    console.log(`   Using legacy transaction (Type 0) with gasPrice: ${ethers.formatUnits(gasPrice, 'gwei')} gwei`);
+    
+    // Build transaction options for legacy transaction
+    const txOptions = {
       gasLimit: gasLimit,
-      gasPrice: gasPrice,
-      nonce: nonce
-    });
+      gasPrice: gasPrice, // Use gasPrice for Type 0 (legacy) transaction
+      nonce: nonce,
+      type: 0 // Force legacy transaction (Type 0) for compatibility and lower gas
+    };
+    
+    const tx = await contract.checkIn(txOptions);
     
     console.log(`   Transaction sent: ${tx.hash}`);
     console.log(`   ✅ Transaction broadcast successful! (confirmation will happen asynchronously)`);
@@ -196,16 +233,12 @@ export async function executeCheckIn(privateKey, walletAddress, manualNonce = nu
     // This saves 10-12 RPC calls (eth_getTransactionReceipt polling)
     // The transaction will be confirmed by the network asynchronously
     
-    // Estimate gas cost based on gas limit and gas price
-    const estimatedGasCostInWei = gasLimit * gasPrice;
-    const estimatedGasCostInEgas = ethers.formatEther(estimatedGasCostInWei);
-    
     return {
       success: true,
       txHash: tx.hash,
       blockNumber: null, // Will be set when mined (not waiting)
       gasUsed: gasLimit.toString(), // Estimated (actual will be lower)
-      gasCostInEgas: estimatedGasCostInEgas, // Estimated
+      gasCostInEgas: estimatedGasCostInEgas, // Estimated cost calculated earlier
       nonce: nonce, // Return nonce for sequential processing
       pending: true // Flag to indicate tx is pending confirmation
     };
@@ -257,7 +290,7 @@ export function getCacheStatus() {
     hasGasLimit: !!cachedGasLimit,
     gasLimit: cachedGasLimit?.toString() || null,
     hasGasPrice: !!cachedGasPrice,
-    gasPrice: cachedGasPrice ? ethers.formatUnits(cachedGasPrice, 'gwei') + ' gwei' : null,
+    gasPrice: cachedGasPrice ? ethers.formatUnits(cachedGasPrice, 'gwei') + ' gwei (legacy)' : null,
     gasPriceAge: gasPriceAge ? Math.floor(gasPriceAge / 1000) + 's' : null
   };
 }
