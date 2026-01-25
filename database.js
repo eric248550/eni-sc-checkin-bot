@@ -160,6 +160,41 @@ export async function logCheckIn(walletId, walletAddress, txHash, gasUsed, block
 }
 
 /**
+ * Insert task log into kaia_2048_user_permanent_task_logs
+ * @param {string} userId - The user ID from kaia_2048_users
+ * @param {string} taskKey - The task key (e.g. 'on_chain_checkin')
+ * @param {string} contractAddress - The contract address
+ * @param {string} txHash - Transaction hash
+ * @param {string} status - Task status ('pending', 'success', 'failed')
+ * @returns {Promise<Object>} Insert result
+ */
+export async function insertTaskLog(userId, taskKey, contractAddress, txHash, status = 'success') {
+  const query = `
+    INSERT INTO kaia_2048_user_permanent_task_logs 
+      (user_id, task_key, task_date, contract_address, tx_hash, status)
+    VALUES ($1, $2, CURRENT_DATE, $3, $4, $5)
+    ON CONFLICT (tx_hash) WHERE tx_hash IS NOT NULL 
+    DO NOTHING
+    RETURNING id
+  `;
+  
+  try {
+    const result = await pool.query(query, [userId, taskKey, contractAddress, txHash, status]);
+    
+    if (result.rows.length > 0) {
+      console.log(`   📝 Task log inserted: ${taskKey} for user ${userId} (tx: ${txHash})`);
+      return { success: true, logId: result.rows[0].id };
+    } else {
+      console.log(`   ℹ️  Task log skipped: duplicate tx_hash ${txHash}`);
+      return { success: true, duplicate: true };
+    }
+  } catch (error) {
+    console.error(`   ❌ Task log insert failed:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Generate JWT token for purchase API authentication
  */
 function generateJWTToken(userId, walletAddress) {

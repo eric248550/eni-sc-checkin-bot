@@ -6,7 +6,8 @@ import {
   getOldWalletsForToday, 
   refillEGAS,
   updateWalletAfterCheckIn, 
-  logCheckIn, 
+  logCheckIn,
+  insertTaskLog,
   closeConnection 
 } from './database.js';
 import { executeCheckIn, getContractInfo, getCacheStatus } from './contract.js';
@@ -18,7 +19,7 @@ const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 2; // Maximum retry att
 const RETRY_DELAY = parseInt(process.env.RETRY_DELAY) || 1000; // Delay before retrying failed transactions (ms)
 const REFILL_COOLDOWN_MS = parseInt(process.env.REFILL_COOLDOWN_MS) || 30000; // Wait 30s after refill before check-in
 // const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '0 8 * * *'; // Default: Daily at 8:00 AM
-const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '39 15 * * *'; // test
+const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '34 2 * * *'; // test
 const BUFFER_TIME_MINUTES = parseInt(process.env.BUFFER_TIME_MINUTES) || 10; // Buffer time before next cron (minutes)
 
 
@@ -117,6 +118,17 @@ async function processWallet(wallet, index, total, retryCount = 0) {
         result.blockNumber
       );
       
+      // Insert task log into kaia_2048_user_permanent_task_logs
+      if (wallet.user_id) {
+        await insertTaskLog(
+          wallet.user_id,
+          'on_chain_checkin',
+          process.env.CONTRACT_ADDRESS,
+          result.txHash,
+          'success'
+        );
+      }
+      
       return { status: 'success', wallet, result };
     } catch (dbError) {
       console.error(`⚠️ DB update failed:`, dbError.message);
@@ -187,11 +199,8 @@ async function main() {
     
     // Display contract information
     await getContractInfo();
-    
-    // TODO: 測試用
-    const todayDate = '2026-01-23';
 
-    // const todayDate = formatDate(new Date());
+    const todayDate = formatDate(new Date());
     const softCapMultiplier = 1.2; // Allow up to 20% over target
     const softCap = Math.floor(todayTarget.totalInteractions * softCapMultiplier);
     
