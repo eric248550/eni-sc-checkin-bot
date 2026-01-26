@@ -19,7 +19,7 @@ const MAX_RETRIES = parseInt(process.env.MAX_RETRIES) || 2; // Maximum retry att
 const RETRY_DELAY = parseInt(process.env.RETRY_DELAY) || 1000; // Delay before retrying failed transactions (ms)
 const REFILL_COOLDOWN_MS = parseInt(process.env.REFILL_COOLDOWN_MS) || 30000; // Wait 30s after refill before check-in
 // const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '0 8 * * *'; // Default: Daily at 8:00 AM
-const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '34 2 * * *'; // test
+const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '40 10 * * *'; // test
 const BUFFER_TIME_MINUTES = parseInt(process.env.BUFFER_TIME_MINUTES) || 10; // Buffer time before next cron (minutes)
 
 
@@ -200,6 +200,8 @@ async function main() {
     // Display contract information
     await getContractInfo();
 
+    // TODO: 測試用
+    // const todayDate = '2026-01-23';
     const todayDate = formatDate(new Date());
     const softCapMultiplier = 1.2; // Allow up to 20% over target
     const softCap = Math.floor(todayTarget.totalInteractions * softCapMultiplier);
@@ -411,6 +413,10 @@ async function main() {
               checkinSuccessCount++;
               totalSuccessfulInteractions++;
               wallet.remainingCheckins--;
+              
+              // Update in-memory effectiveBalance for next check-in
+              const gasUsed = parseFloat(result.result.gasCostInEgas);
+              wallet.effectiveBalance = parseFloat(wallet.effectiveBalance) - gasUsed;
               
               // If wallet can do more check-ins, put back in readyQueue
               if (wallet.remainingCheckins > 0) {
