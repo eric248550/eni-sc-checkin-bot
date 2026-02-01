@@ -6,20 +6,19 @@ dotenv.config();
 /**
  * OPTIMIZATIONS TO REDUCE RPC CALLS:
  * 
- * 1. Static Network: Chain ID 8217 hardcoded (saves 1 call per provider)
- * 2. Cached Gas Limit: Estimate once, reuse for all transactions (saves 1 call per tx after first)
- * 3. Fixed Gas Price: 100 gwei hardcoded (ENI minimum, saves 1 call per tx, no errors)
- * 4. Manual Nonce: Can be passed in to avoid fetching (optional, saves 1 call per tx)
- * 5. NO RECEIPT POLLING: Transaction sent and returned immediately (saves 10-12 calls per tx)
- * 6. LEGACY TRANSACTIONS: Force Type 0 (legacy) transactions for compatibility
+ * 1. Static Network: Chain ID 173 hardcoded (saves 1 call per provider)
+ * 2. Fixed Gas Price: 100 gwei hardcoded (ENI minimum, saves 1 call per tx, no errors)
+ * 3. Manual Nonce: Can be passed in to avoid fetching (optional, saves 1 call per tx)
+ * 4. LEGACY TRANSACTIONS: Force Type 0 (legacy) transactions for compatibility
+ * 
+ * IMPORTANT: Gas estimation is done PER WALLET (not cached)
+ * - This is critical to detect if wallet already checked in today
+ * - If wallet already checked in, gas estimation will fail with revert
+ * - Prevents sending transactions that will fail (saves gas fees!)
  * 
  * RPC Calls per transaction:
- * - First transaction: 4 calls (balance, nonce, estimate, send)
- * - Subsequent transactions: 2 calls (balance, nonce, send)
- * - Receipt polling: 0 calls (REMOVED - async confirmation)
- * 
- * Total: 2-4 calls per wallet (down from ~23 calls)
- * Savings: 83-91% reduction in RPC calls! 🎉
+ * - Per transaction: 4 calls (balance, nonce, estimate, send)
+ * - Receipt polling: 0 calls (async confirmation by default)
  */
 
 const CONTRACT_ABI = [
@@ -55,8 +54,7 @@ const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '0x34473292ceb92186e31f
 const RPC_URL = process.env.RPC_URL || 'https://rpc.eniac.network';
 const CHAIN_ID = parseInt(process.env.CHAIN_ID) || 173; // ENI mainnet - static, no need to fetch
 
-// Cache for optimization
-let cachedGasLimit = null;
+// Fixed gas price (no caching needed for gas limit - estimate per wallet!)
 const FIXED_GAS_PRICE = ethers.parseUnits('100', 'gwei'); // ENI network minimum
 
 /**
@@ -83,22 +81,31 @@ function delay(ms) {
 }
 
 /**
- * Get or cache gas limit (estimate once and reuse)
+ * Estimate gas limit for this specific wallet
+ * IMPORTANT: This is NOT cached - each wallet needs its own estimation
+ * This allows us to detect if the wallet has already checked in today
+ * 
+ * @param {Contract} contract - Contract instance connected to the wallet (has signer)
+ * @param {string} walletAddress - Wallet address for logging
+ * @returns {Promise<bigint>} Estimated gas limit
  */
-async function getGasLimit(contract) {
-  if (cachedGasLimit) {
-    console.log(`   Using cached gas limit: ${cachedGasLimit.toString()}`);
-    return cachedGasLimit;
-  }
-  
+async function estimateGasLimit(contract, walletAddress) {
   try {
-    cachedGasLimit = await contract.checkIn.estimateGas();
-    console.log(`   Estimated gas (cached for reuse): ${cachedGasLimit.toString()}`);
-    return cachedGasLimit;
+    // CRITICAL: contract must be connected to wallet (has signer)
+    // This ensures estimateGas() uses the correct 'from' address
+    // If wallet already checked in, this will revert
+    const gasLimit = await contract.checkIn.estimateGas();
+    console.log(`   Gas estimation for ${walletAddress}: ${gasLimit.toString()}`);
+    return gasLimit;
   } catch (error) {
-    console.log(`   Gas estimation failed, using default gas limit`);
-    cachedGasLimit = 100000n; // Default gas limit
-    return cachedGasLimit;
+    // Gas estimation failed - wallet likely already checked in or contract issue
+    console.log(`   ⚠️  Gas estimation failed for ${walletAddress}`);
+    
+    if (error.message?.includes('revert') || error.code === 'CALL_EXCEPTION') {
+      throw new Error('Wallet already checked in today or contract reverted during estimation');
+    }
+    
+    throw error;
   }
 }
 
@@ -146,12 +153,12 @@ export async function executeCheckIn(privateKey, walletAddress, manualNonce = nu
     // Small delay
     await delay(200);
     
-    // Get cached gas limit (0 or 1 RPC call: eth_estimateGas - only once globally)
-    const gasLimit = await getGasLimit(contract);
+    // Estimate gas limit for THIS wallet (not cached - critical for detecting already checked in)
+    const gasLimit = await estimateGasLimit(contract, walletAddress);
     
     // Use fixed gas price (100 gwei - ENI network minimum, no RPC call needed)
     const gasPrice = FIXED_GAS_PRICE;
-    console.log(`   Using gas price: 100 gwei (ENI minimum)`);
+    console.log(`   Gas price: 100 gwei (ENI minimum)`);
     
     // Check if balance is sufficient for gas
     const estimatedGasCostInWei = gasLimit * gasPrice;
@@ -200,9 +207,11 @@ export async function executeCheckIn(privateKey, walletAddress, manualNonce = nu
     // Handle specific errors
     if (error.code === 'CALL_EXCEPTION') {
       console.error(`   Contract call failed - possible reasons:`);
-      console.error(`   - Already checked in today`);
+      console.error(`   - Already checked in today (most common)`);
       console.error(`   - Contract is paused`);
       console.error(`   - Other contract-specific restrictions`);
+    } else if (error.message?.includes('already checked in')) {
+      console.error(`   Wallet has already checked in today - skipping`);
     } else if (error.code === 'INSUFFICIENT_FUNDS') {
       console.error(`   Insufficient funds for gas`);
     } else if (error.code === 'NONCE_EXPIRED') {
@@ -221,25 +230,6 @@ export async function executeCheckIn(privateKey, walletAddress, manualNonce = nu
 }
 
 /**
- * Reset cached values (useful for testing or if network conditions change)
- */
-export function resetCache() {
-  cachedGasLimit = null;
-  console.log('🔄 Cache reset: gas limit will be re-estimated (gas price is fixed at 100 gwei)');
-}
-
-/**
- * Get cache status for monitoring
- */
-export function getCacheStatus() {
-  return {
-    hasGasLimit: !!cachedGasLimit,
-    gasLimit: cachedGasLimit?.toString() || null,
-    gasPrice: '100 gwei (fixed - ENI minimum)'
-  };
-}
-
-/**
  * Get contract information
  */
 export async function getContractInfo() {
@@ -248,6 +238,8 @@ export async function getContractInfo() {
   
   console.log(`Contract Address: ${CONTRACT_ADDRESS}`);
   console.log(`RPC URL: ${RPC_URL}`);
+  console.log(`Gas Price: 100 gwei (fixed - ENI minimum)`);
+  console.log(`Note: Gas limit estimated per wallet (not cached)`);
   
   try {
     const code = await provider.getCode(CONTRACT_ADDRESS);

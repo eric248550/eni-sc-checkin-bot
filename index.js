@@ -10,7 +10,7 @@ import {
   insertTaskLog,
   closeConnection 
 } from './database.js';
-import { executeCheckIn, getContractInfo, getCacheStatus } from './contract.js';
+import { executeCheckIn, getContractInfo } from './contract.js';
 import { getTodayTarget, formatDate, displayTodayTarget } from './constants.js';
 
 // Configuration
@@ -200,9 +200,7 @@ async function main() {
     // Display contract information
     await getContractInfo();
 
-    // TODO: 測試用
-    // const todayDate = '2026-01-23';
-    const todayDate = formatDate(new Date());
+    const todayDate = process.env.RUN_DATE || formatDate(new Date());
     const softCapMultiplier = 1.2; // Allow up to 20% over target
     const softCap = Math.floor(todayTarget.totalInteractions * softCapMultiplier);
     
