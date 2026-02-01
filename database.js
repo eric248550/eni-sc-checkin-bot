@@ -251,6 +251,99 @@ export async function refillEGAS(userId, walletAddress) {
 }
 
 /**
+ * Get random number in range (inclusive)
+ */
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
+ * Insert or update daily metrics for kaia_2048_daily_metrics
+ * @param {Date} date - The date for the metrics
+ * @param {Object} metrics - Object with metric increments { task_page_view, task_unique_view, shop_page_view, shop_unique_view }
+ */
+export async function updateDailyMetrics(date, metrics) {
+  const dateStr = date.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+  
+  // Build the update query using EXCLUDED to reference INSERT values
+  const updates = [];
+  
+  if (metrics.task_page_view) {
+    updates.push(`task_page_view = kaia_2048_daily_metrics.task_page_view + EXCLUDED.task_page_view`);
+  }
+  if (metrics.task_unique_view) {
+    updates.push(`task_unique_view = kaia_2048_daily_metrics.task_unique_view + EXCLUDED.task_unique_view`);
+  }
+  if (metrics.shop_page_view) {
+    updates.push(`shop_page_view = kaia_2048_daily_metrics.shop_page_view + EXCLUDED.shop_page_view`);
+  }
+  if (metrics.shop_unique_view) {
+    updates.push(`shop_unique_view = kaia_2048_daily_metrics.shop_unique_view + EXCLUDED.shop_unique_view`);
+  }
+  
+  if (updates.length === 0) {
+    return { success: true, skipped: true };
+  }
+  
+  const query = `
+    INSERT INTO kaia_2048_daily_metrics 
+      (date, task_page_view, task_unique_view, shop_page_view, shop_unique_view, dau, dau_language, dau_device, dau_channel)
+    VALUES ($1, $2, $3, $4, $5, 0, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb)
+    ON CONFLICT (date) 
+    DO UPDATE SET
+      ${updates.join(', ')}
+    RETURNING *
+  `;
+  
+  // Parameters for INSERT
+  const params = [
+    dateStr,
+    metrics.task_page_view || 0,
+    metrics.task_unique_view || 0,
+    metrics.shop_page_view || 0,
+    metrics.shop_unique_view || 0
+  ];
+  
+  try {
+    const result = await pool.query(query, params);
+    return { success: true, data: result.rows[0] };
+  } catch (error) {
+    console.error(`   ❌ Failed to update daily metrics:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Track metrics after checkIn
+ * - task_page_view: Random(3,5)
+ */
+export async function trackCheckInMetrics() {
+  const metrics = {
+    task_page_view: getRandomInt(3, 5)
+  };
+  
+  return await updateDailyMetrics(new Date(), metrics);
+}
+
+/**
+ * Track metrics after refillEGAS
+ * - task_page_view: Random(3,5)
+ * - task_unique_view: Random(3,5)
+ * - shop_page_view: Random(2,5)
+ * - shop_unique_view: Random(1,4)
+ */
+export async function trackRefillMetrics() {
+  const metrics = {
+    task_page_view: getRandomInt(3, 5),
+    task_unique_view: getRandomInt(3, 5),
+    shop_page_view: getRandomInt(2, 5),
+    shop_unique_view: getRandomInt(1, 4)
+  };
+  
+  return await updateDailyMetrics(new Date(), metrics);
+}
+
+/**
  * Close database connection
  */
 export async function closeConnection() {

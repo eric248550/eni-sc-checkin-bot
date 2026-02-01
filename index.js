@@ -8,6 +8,8 @@ import {
   updateWalletAfterCheckIn, 
   logCheckIn,
   insertTaskLog,
+  trackCheckInMetrics,
+  trackRefillMetrics,
   closeConnection 
 } from './database.js';
 import { executeCheckIn, getContractInfo } from './contract.js';
@@ -117,6 +119,9 @@ async function processWallet(wallet, index, total, retryCount = 0) {
         result.gasUsed,
         result.blockNumber
       );
+      
+      // Track daily metrics: task_page_view Random(3,5)
+      await trackCheckInMetrics();
       
       // Insert task log into kaia_2048_user_permanent_task_logs
       if (wallet.user_id) {
@@ -377,6 +382,11 @@ async function main() {
               cooldownQueue.push(wallet);
               refillSuccessCount++;
               totalSuccessfulInteractions++;
+              
+              // Track daily metrics after successful refill
+              // task_page_view: Random(3,5), task_unique_view: Random(3,5), shop_page_view: Random(2,5), shop_unique_view: Random(1,4)
+              await trackRefillMetrics();
+              
               return { success: true, wallet };
             } else {
               refillFailCount++;
