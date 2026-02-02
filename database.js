@@ -327,17 +327,17 @@ export async function trackCheckInMetrics() {
 
 /**
  * Track metrics after refillEGAS
- * - task_page_view: Random(3,5)
- * - task_unique_view: Random(3,5)
- * - shop_page_view: Random(2,5)
- * - shop_unique_view: Random(1,4)
+ * - task_page_view: Random(2,4)
+ * - task_unique_view: Random(2,4)
+ * - shop_page_view: Random(2,4)
+ * - shop_unique_view: Random(1,3)
  */
 export async function trackRefillMetrics() {
   const metrics = {
-    task_page_view: getRandomInt(3, 5),
-    task_unique_view: getRandomInt(3, 5),
-    shop_page_view: getRandomInt(2, 5),
-    shop_unique_view: getRandomInt(1, 4)
+    task_page_view: getRandomInt(2, 4),
+    task_unique_view: getRandomInt(2, 4),
+    shop_page_view: getRandomInt(2, 4),
+    shop_unique_view: getRandomInt(1, 3)
   };
   
   return await updateDailyMetrics(new Date(), metrics);
