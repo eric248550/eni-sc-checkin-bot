@@ -2,6 +2,7 @@ import { DAILY_TARGETS } from './constants.js';
 import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
+import cron from 'node-cron';
 
 dotenv.config();
 
@@ -176,13 +177,34 @@ async function insertDauMau(date, target) {
 }
 
 /**
+ * Get yesterday's date in YYYY-MM-DD format
+ */
+function getYesterdayDate() {
+  const yesterday = new Date();
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const year = yesterday.getUTCFullYear();
+  const month = String(yesterday.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(yesterday.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Main function to process all dates or a specific date
  */
 async function main() {
   console.log('🚀 Starting DAU/MAU data insertion...\n');
   
-  // Get date from command line argument or process all dates with DAU/MAU
-  const targetDate = process.argv[2]; // Optional: node insert-dau-mau.js 2026-02-01
+  // Get date from command line argument or use yesterday
+  let targetDate = process.argv[2]; // Optional: node insert-dau-mau.js 2026-02-01
+  
+  // Support 'yesterday' keyword or default to yesterday when no argument
+  if (!targetDate || targetDate === 'yesterday') {
+    targetDate = getYesterdayDate();
+    console.log(`📅 Auto-detected yesterday's date (UTC): ${targetDate}\n`);
+  } else if (targetDate === 'all') {
+    // Process all dates with DAU/MAU data
+    targetDate = null;
+  }
   
   let datesToProcess = [];
   
@@ -190,6 +212,7 @@ async function main() {
     // Process specific date
     if (!DAILY_TARGETS[targetDate]) {
       console.error(`❌ Date ${targetDate} not found in DAILY_TARGETS`);
+      console.log(`ℹ️  This might be expected if yesterday's data hasn't been added to constants.js yet.`);
       process.exit(1);
     }
     datesToProcess = [{ date: targetDate, target: DAILY_TARGETS[targetDate] }];
@@ -240,8 +263,50 @@ async function main() {
   console.log('👋 Database connection closed');
 }
 
-// Run the script
-main().catch(error => {
-  console.error('❌ Fatal error:', error);
-  process.exit(1);
-});
+// Check execution mode
+// Modes: 'manual' (default), 'cron' (scheduled only), 'cron-immediate' (run now + scheduled)
+const EXECUTION_MODE = process.env.DAU_MAU_MODE || 'manual';
+const CRON_SCHEDULE = process.env.DAU_MAU_CRON_SCHEDULE || '0 0 * * *'; // Default: UTC 00:00 daily
+
+if (EXECUTION_MODE === 'cron' || EXECUTION_MODE === 'cron-immediate') {
+  // Scheduled execution with node-cron
+  console.log('🤖 DAU/MAU Insertion - Cron Scheduler Started');
+  console.log(`📅 Schedule: ${CRON_SCHEDULE} (UTC timezone)`);
+  console.log(`⏰ Started at: ${new Date().toISOString()}\n`);
+
+  // Run immediately on startup if mode is 'cron-immediate'
+  if (EXECUTION_MODE === 'cron-immediate') {
+    console.log('▶️  Running immediately on startup...\n');
+    main().catch(error => {
+      console.error('❌ Startup run error:', error);
+    });
+  }
+
+  // Schedule the cron job
+  const task = cron.schedule(CRON_SCHEDULE, () => {
+    console.log(`\n⏰ Cron triggered at: ${new Date().toISOString()}`);
+    main().catch(error => {
+      console.error('❌ Cron job error:', error);
+    });
+  }, {
+    scheduled: true,
+    timezone: 'UTC' // Run at UTC 00:00
+  });
+
+  // Keep the process alive
+  process.on('SIGINT', () => {
+    console.log('\n👋 Shutting down gracefully...');
+    task.stop();
+    db.end().then(() => {
+      process.exit(0);
+    });
+  });
+
+  console.log('✅ Cron scheduler is running. Press Ctrl+C to stop.\n');
+} else {
+  // One-time execution mode (manual)
+  main().catch(error => {
+    console.error('❌ Fatal error:', error);
+    process.exit(1);
+  });
+}
