@@ -77,10 +77,12 @@ export const DAILY_TARGETS = {
     newWallets: 15493,
     oldWallets: 2789, // 18% of newWallets
     totalInteractions: 57472,
-    gameConnectedWallets: 672591 // 67萬
+    gameConnectedWallets: 672591, // 67萬
+    dau: 107_845,
+    mau: 730_182
   },
   // 第四階 (2026/2/2)
-  '2026-02-02': {
+  '2026-02-02': { 
     newWallets: 13984,
     oldWallets: 2377, // 17% of newWallets
     totalInteractions: 83772,
