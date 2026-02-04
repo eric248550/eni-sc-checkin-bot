@@ -225,7 +225,6 @@ async function main() {
   
   if (datesToProcess.length === 0) {
     console.log('ℹ️  No dates with DAU/MAU data found');
-    await db.end();
     return;
   }
   
@@ -257,10 +256,6 @@ async function main() {
   console.log(`❌ Failed: ${failCount}`);
   console.log(`📊 Total: ${datesToProcess.length}`);
   console.log('='.repeat(60) + '\n');
-  
-  // Close database connection
-  await db.end();
-  console.log('👋 Database connection closed');
 }
 
 // Check execution mode
@@ -298,6 +293,7 @@ if (EXECUTION_MODE === 'cron' || EXECUTION_MODE === 'cron-immediate') {
     console.log('\n👋 Shutting down gracefully...');
     task.stop();
     db.end().then(() => {
+      console.log('👋 Database connection closed');
       process.exit(0);
     });
   });
@@ -305,8 +301,14 @@ if (EXECUTION_MODE === 'cron' || EXECUTION_MODE === 'cron-immediate') {
   console.log('✅ Cron scheduler is running. Press Ctrl+C to stop.\n');
 } else {
   // One-time execution mode (manual)
-  main().catch(error => {
-    console.error('❌ Fatal error:', error);
-    process.exit(1);
-  });
+  main()
+    .then(() => db.end())
+    .then(() => {
+      console.log('👋 Database connection closed');
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error('❌ Fatal error:', error);
+      db.end().then(() => process.exit(1));
+    });
 }
