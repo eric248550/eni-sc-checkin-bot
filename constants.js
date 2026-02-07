@@ -123,303 +123,303 @@ export const DAILY_TARGETS = {
     mau: 971_281
   },
   '2026-02-07': {
-    newWallets: 10096,
-    oldWallets: 1717, // 17% of newWallets
+    newWallets: 3534,
+    oldWallets: 10096,
     totalInteractions: 44947,
     gameConnectedWallets: 1014483, // 101萬
     dau: 114_059,
-    mau: 1_042_810
+    mau: 1_048_372
   },
   // 第五階 (2026/2/8)
   '2026-02-08': {
-    newWallets: 13446,
-    oldWallets: 2287, // 17% of newWallets
+    newWallets: 4706,
+    oldWallets: 13446,
     totalInteractions: 72855,
-    gameConnectedWallets: 1076927, // 107萬
+    gameConnectedWallets: 1033245, // 103萬
     dau: 118_364,
-    mau: 1_110_292
+    mau: 1_073_829
   },
   '2026-02-09': {
-    newWallets: 9642,
-    oldWallets: 1736, // 18% of newWallets
-    totalInteractions: 56481,
-    gameConnectedWallets: 1125634, // 112萬
+    newWallets: 4821,
+    oldWallets: 9642,
+    totalInteractions: 43147,
+    gameConnectedWallets: 1062817, // 106萬
     dau: 88_650,
-    mau: 1_149_281
+    mau: 1_103_921
   },
   '2026-02-10': {
-    newWallets: 8616,
-    oldWallets: 1465, // 17% of newWallets
+    newWallets: 4308,
+    oldWallets: 8616,
     totalInteractions: 42553,
-    gameConnectedWallets: 1208815, // 120萬
+    gameConnectedWallets: 1074529, // 107萬
     dau: 113_928,
-    mau: 1_229_831
+    mau: 1_119_283
   },
   '2026-02-11': {
-    newWallets: 6938,
-    oldWallets: 1180, // 17% of newWallets
-    totalInteractions: 72855,
-    gameConnectedWallets: 1274492, // 127萬
+    newWallets: 3469,
+    oldWallets: 6938,
+    totalInteractions: 39522,
+    gameConnectedWallets: 1083641, // 108萬
     dau: 102_938,
-    mau: 1_293_872
+    mau: 1_129_842
   },
   '2026-02-12': {
-    newWallets: 6525,
-    oldWallets: 1175, // 18% of newWallets
-    totalInteractions: 106188,
-    gameConnectedWallets: 1337761, // 133萬
+    newWallets: 3262,
+    oldWallets: 6525,
+    totalInteractions: 48188,
+    gameConnectedWallets: 1107392, // 110.5萬
     dau: 92_832,
-    mau: 1_361_290
+    mau: 1_154_842
   },
   '2026-02-13': {
-    newWallets: 5647,
-    oldWallets: 960, // 17% of newWallets
+    newWallets: 2823,
+    oldWallets: 5647,
     totalInteractions: 39655,
-    gameConnectedWallets: 1506348, // 150萬
+    gameConnectedWallets: 1142758, // 114萬
     dau: 148_291,
-    mau: 1_538_492
+    mau: 1_189_293
   },
   '2026-02-14': {
-    newWallets: 6465,
-    oldWallets: 1164, // 18% of newWallets
+    newWallets: 3233,
+    oldWallets: 6465,
     totalInteractions: 41685,
-    gameConnectedWallets: 1573629, // 157萬
+    gameConnectedWallets: 1153924, // 115萬
     dau: 102_931,
-    mau: 1_612_938
+    mau: 1_199_845
   },
   '2026-02-15': {
-    newWallets: 7376,
-    oldWallets: 1254, // 17% of newWallets
+    newWallets: 3688,
+    oldWallets: 7376,
     totalInteractions: 58308,
-    gameConnectedWallets: 1668917, // 166萬
+    gameConnectedWallets: 1174536, // 117萬
     dau: 129_381,
-    mau: 1_692_831
+    mau: 1_222_653
   },
   '2026-02-16': {
-    newWallets: 10196,
-    oldWallets: 1835, // 18% of newWallets
+    newWallets: 2243,
+    oldWallets: 10196,
     totalInteractions: 66189,
-    gameConnectedWallets: 1754482, // 175萬
+    gameConnectedWallets: 1194827, // 119萬
     dau: 139_382,
-    mau: 1_802_981
+    mau: 1_239_572
   },
   '2026-02-17': {
-    newWallets: 22713,
-    oldWallets: 3861, // 17% of newWallets
+    newWallets: 2498,
+    oldWallets: 11357,
     totalInteractions: 110283,
-    gameConnectedWallets: 1826736, // 182萬
+    gameConnectedWallets: 1205614, // 120.3萬
     dau: 112_932,
-    mau: 1_850_290
+    mau: 1_252_910
   },
   '2026-02-18': {
-    newWallets: 18372,
-    oldWallets: 3307, // 18% of newWallets
+    newWallets: 2021,
+    oldWallets: 9186,
     totalInteractions: 98172,
-    gameConnectedWallets: 1897591, // 189萬
+    gameConnectedWallets: 1211749, // 120.9萬
     dau: 103_982,
-    mau: 1_929_381
+    mau: 1_258_844
   },
   // 第六階 (2026/2/19)
   '2026-02-19': {
-    newWallets: 14959,
-    oldWallets: 2543, // 17% of newWallets
+    newWallets: 1645,
+    oldWallets: 7480,
     totalInteractions: 83726,
-    gameConnectedWallets: 1943823, // 194萬
+    gameConnectedWallets: 1214583, // 121.2萬
     dau: 89_281,
-    mau: 1_973_002
+    mau: 1_261_762
   },
   '2026-02-20': {
-    newWallets: 19837,
-    oldWallets: 3571, // 18% of newWallets
+    newWallets: 2182,
+    oldWallets: 9919,
     totalInteractions: 102932,
-    gameConnectedWallets: 1995647, // 199萬
+    gameConnectedWallets: 1220961, // 121.8萬
     dau: 92_831,
-    mau: 2_023_991
+    mau: 1_267_541
   },
   '2026-02-21': {
-    newWallets: 18392,
-    oldWallets: 3127, // 17% of newWallets
+    newWallets: 2023,
+    oldWallets: 9196,
     totalInteractions: 93874,
-    gameConnectedWallets: 2046315, // 204萬
+    gameConnectedWallets: 1228374, // 122.5萬
     dau: 109_283,
-    mau: 2_068_371
+    mau: 1_274_839
   },
   '2026-02-22': {
-    newWallets: 14982,
-    oldWallets: 2697, // 18% of newWallets
+    newWallets: 1648,
+    oldWallets: 7491,
     totalInteractions: 89382,
-    gameConnectedWallets: 2107928, // 210萬
+    gameConnectedWallets: 1230128, // 122.7萬
     dau: 108_372,
-    mau: 2_130_291
+    mau: 1_276_801
   },
   '2026-02-23': {
-    newWallets: 24938,
-    oldWallets: 4239, // 17% of newWallets
+    newWallets: 1247,
+    oldWallets: 8313,
     totalInteractions: 128372,
-    gameConnectedWallets: 2185576, // 218萬
+    gameConnectedWallets: 1237845, // 123.5萬
     dau: 129_382,
-    mau: 2_173_739
+    mau: 1_216_743
   },
   '2026-02-24': {
-    newWallets: 12938,
-    oldWallets: 2329, // 18% of newWallets
+    newWallets: 647,
+    oldWallets: 4313,
     totalInteractions: 102938,
-    gameConnectedWallets: 2238841, // 223萬
+    gameConnectedWallets: 1239217, // 123.6萬
     dau: 82_831,
-    mau: 2_135_987
+    mau: 1_107_993
   },
   '2026-02-25': {
-    newWallets: 18273,
-    oldWallets: 3106, // 17% of newWallets
+    newWallets: 914,
+    oldWallets: 6091,
     totalInteractions: 169281,
-    gameConnectedWallets: 2304467, // 230萬
+    gameConnectedWallets: 1242693, // 123.9萬
     dau: 109_283,
-    mau: 2_115_853
+    mau: 994_188
   },
   '2026-02-26': {
-    newWallets: 17382,
-    oldWallets: 3129, // 18% of newWallets
+    newWallets: 869,
+    oldWallets: 5794,
     totalInteractions: 132821,
-    gameConnectedWallets: 2336792, // 233萬
+    gameConnectedWallets: 1304572, // 130.1萬
     dau: 99_283,
-    mau: 2_104_842
+    mau: 898_078
   },
   '2026-02-27': {
-    newWallets: 14853,
-    oldWallets: 2525, // 17% of newWallets
+    newWallets: 446,
+    oldWallets: 4951,
     totalInteractions: 201983,
-    gameConnectedWallets: 2395634, // 239萬
+    gameConnectedWallets: 1306839, // 130.3萬
     dau: 93_029,
-    mau: 2_113_290
+    mau: 906_526
   },
   '2026-02-28': {
-    newWallets: 12939,
-    oldWallets: 2329, // 18% of newWallets
+    newWallets: 388,
+    oldWallets: 4313,
     totalInteractions: 109283,
-    gameConnectedWallets: 2507219, // 250萬
+    gameConnectedWallets: 1309471, // 130.6萬
     dau: 102_932,
-    mau: 2_134_117
+    mau: 839_125
   },
   '2026-03-01': {
-    newWallets: 11293,
-    oldWallets: 1920, // 17% of newWallets
+    newWallets: 339,
+    oldWallets: 3764,
     totalInteractions: 112938,
-    gameConnectedWallets: 2586753, // 258萬
+    gameConnectedWallets: 1315628, // 131.2萬
     dau: 119_382,
-    mau: 2_155_226
+    mau: 860_234
   },
   '2026-03-02': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2149884, // 214萬
+    newWallets: 437,
+    oldWallets: 4861,
+    totalInteractions: 138742,
+    gameConnectedWallets: 1317952, // 131.4萬
     dau: 83_921,
-    mau: 2_149_884
+    mau: 812_932
   },
   '2026-03-03': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2140220, // 214萬
+    newWallets: 422,
+    oldWallets: 4686,
+    totalInteractions: 149284,
+    gameConnectedWallets: 1321746, // 131.8萬
     dau: 123_938,
-    mau: 2_140_220
+    mau: 741_299
   },
   '2026-03-04': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2150377, // 215萬
+    newWallets: 630,
+    oldWallets: 7001,
+    totalInteractions: 158372,
+    gameConnectedWallets: 1323184, // 131.9萬
     dau: 95_284,
-    mau: 2_150_377
+    mau: 709_421
   },
   '2026-03-05': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2172844, // 217萬
+    newWallets: 549,
+    oldWallets: 6098,
+    totalInteractions: 192732,
+    gameConnectedWallets: 1324517, // 132萬
     dau: 102_938,
-    mau: 2_172_844
+    mau: 680_419
   },
   '2026-03-06': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2253093, // 225萬
+    newWallets: 578,
+    oldWallets: 6428,
+    totalInteractions: 97382,
+    gameConnectedWallets: 1329863, // 132.5萬
     dau: 158_291,
-    mau: 2_253_093
+    mau: 681_522
   },
   '2026-03-07': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2387054, // 238萬
+    newWallets: 418,
+    oldWallets: 4648,
+    totalInteractions: 138274,
+    gameConnectedWallets: 1348291, // 134.5萬
     dau: 209_381,
-    mau: 2_387_054
+    mau: 710_793
   },
   '2026-03-08': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2505458, // 250萬
+    newWallets: 732,
+    oldWallets: 8131,
+    totalInteractions: 145982,
+    gameConnectedWallets: 1363725, // 136萬
     dau: 201_923,
-    mau: 2_505_458
+    mau: 728_235
   },
   '2026-03-09': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2402510, // 240萬
+    newWallets: 386,
+    oldWallets: 4821,
+    totalInteractions: 100000,
+    gameConnectedWallets: 1374619, // 137萬
     dau: 138_210,
-    mau: 2_402_510
+    mau: 625_287
   },
   '2026-03-10': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2296491, // 229萬
+    newWallets: 397,
+    oldWallets: 4959,
+    totalInteractions: 83921,
+    gameConnectedWallets: 1379283, // 137.5萬
     dau: 120_193,
-    mau: 2_296_491
+    mau: 519_268
   },
   '2026-03-11': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2238578, // 223萬
+    newWallets: 353,
+    oldWallets: 4408,
+    totalInteractions: 74621,
+    gameConnectedWallets: 1382947, // 137.8萬
     dau: 163_821,
-    mau: 2_238_578
+    mau: 488_399
   },
   '2026-03-12': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2132427, // 213萬
+    newWallets: 366,
+    oldWallets: 4573,
+    totalInteractions: 94821,
+    gameConnectedWallets: 1384562, // 138萬
     dau: 172_163,
-    mau: 2_132_427
+    mau: 439_212
   },
   // 第七階 (2026/3/13)
   '2026-03-13': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2041610, // 204萬
+    newWallets: 386,
+    oldWallets: 4821,
+    totalInteractions: 84732,
+    gameConnectedWallets: 1394738, // 139萬
     dau: 162_732,
-    mau: 2_041_610
+    mau: 348_395
   },
   '2026-03-14': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2141609, // 214萬
+    newWallets: 279,
+    oldWallets: 3486,
+    totalInteractions: 88271,
+    gameConnectedWallets: 1406451, // 140.2萬
     dau: 192_831,
-    mau: 2_141_609
+    mau: 448_394
   },
   '2026-03-15': {
-    newWallets: 0,
-    oldWallets: 0,
-    totalInteractions: 0,
-    gameConnectedWallets: 2176250, // 217萬
+    newWallets: 258,
+    oldWallets: 3225,
+    totalInteractions: 100982,
+    gameConnectedWallets: 1409827, // 140.5萬
     dau: 182_932,
-    mau: 2_176_250
+    mau: 483_035
   }
 };
 

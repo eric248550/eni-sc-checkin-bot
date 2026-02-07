@@ -43,14 +43,14 @@ function createWallet() {
 }
 
 /**
- * Get users where eni_wallet_address is null and platform = 'tofu'
+ * Get users to insert eni_wallet_address (bind with eni_wallet table)
  */
 async function getTofuUsersWithoutWallet() {
   const query = `
-    SELECT id, platform
+    SELECT id
     FROM kaia_2048_users
     WHERE eni_wallet_address IS NULL 
-      AND platform = 'tofu'
+      AND note = 'bot'
     ORDER BY id
   `;
   
@@ -60,147 +60,6 @@ async function getTofuUsersWithoutWallet() {
     return result.rows;
   } catch (error) {
     console.error('Error fetching users:', error);
-    throw error;
-  }
-}
-
-/**
- * Insert wallet into eni_wallet table (single)
- */
-async function insertWallet(walletData) {
-  const query = `
-    INSERT INTO eni_wallet (
-      id,
-      address,
-      private_key,
-      chain_id,
-      is_testnet,
-      created_at,
-      has_incoming,
-      received_amount,
-      has_payment,
-      has_game_record
-    )
-    VALUES (
-      gen_random_uuid(),
-      $1,
-      $2,
-      $3,
-      $4,
-      NOW(),
-      FALSE,
-      0,
-      FALSE,
-      FALSE
-    )
-    RETURNING id, address
-  `;
-  
-  try {
-    const result = await pool.query(query, [
-      walletData.address,
-      walletData.privateKey,
-      CHAIN_ID,
-      IS_TESTNET
-    ]);
-    return result.rows[0];
-  } catch (error) {
-    console.error('Error inserting wallet:', error);
-    throw error;
-  }
-}
-
-/**
- * Batch insert wallets into eni_wallet table
- */
-async function insertWalletsBatch(walletsData) {
-  if (walletsData.length === 0) return [];
-  
-  // Build VALUES clause dynamically
-  const values = [];
-  const params = [];
-  let paramIndex = 1;
-  
-  for (let i = 0; i < walletsData.length; i++) {
-    const wallet = walletsData[i];
-    values.push(`(gen_random_uuid(), $${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, NOW(), FALSE, 0, FALSE, FALSE)`);
-    params.push(wallet.address, wallet.privateKey, CHAIN_ID, IS_TESTNET);
-    paramIndex += 4;
-  }
-  
-  const query = `
-    INSERT INTO eni_wallet (
-      id,
-      address,
-      private_key,
-      chain_id,
-      is_testnet,
-      created_at,
-      has_incoming,
-      received_amount,
-      has_payment,
-      has_game_record
-    )
-    VALUES ${values.join(', ')}
-    RETURNING id, address
-  `;
-  
-  try {
-    const result = await pool.query(query, params);
-    return result.rows;
-  } catch (error) {
-    console.error('Error batch inserting wallets:', error);
-    throw error;
-  }
-}
-
-/**
- * Batch update users' eni_wallet_address
- */
-async function updateUserWalletAddressesBatch(userWalletPairs) {
-  if (userWalletPairs.length === 0) return;
-  
-  // Build UPDATE query with CASE statement for batch update
-  const userIds = userWalletPairs.map(p => p.userId);
-  const caseStatements = userWalletPairs.map((p, i) => 
-    `WHEN $${i * 2 + 2} THEN $${i * 2 + 3}`
-  ).join(' ');
-  
-  const params = [userIds];
-  userWalletPairs.forEach(p => {
-    params.push(p.userId, p.walletAddress);
-  });
-  
-  const query = `
-    UPDATE kaia_2048_users
-    SET eni_wallet_address = CASE id
-      ${caseStatements}
-    END
-    WHERE id = ANY($1::uuid[])
-  `;
-  
-  try {
-    await pool.query(query, params);
-  } catch (error) {
-    console.error('Error batch updating user wallet addresses:', error);
-    throw error;
-  }
-}
-
-/**
- * Update user's eni_wallet_address
- */
-async function updateUserWalletAddress(userId, walletAddress) {
-  const query = `
-    UPDATE kaia_2048_users
-    SET eni_wallet_address = $1
-    WHERE id = $2
-  `;
-  
-  try {
-    await pool.query(query, [walletAddress, userId]);
-  } catch (error) {
-    console.error('Error updating user wallet address:', error);
     throw error;
   }
 }
@@ -291,7 +150,7 @@ async function main() {
           });
           
           // Batch update users
-          console.log(`   🔗 Updating ${batchSize} users with wallet addresses...`);
+          console.log(`   🔗 Updating ${batchSize} users with wallet addresses and line_points...`);
           const userIds = batchUsers.map(u => u.id);
           const caseStatements = batchUsers.map((u, i) => 
             `WHEN $${i * 2 + 2}::uuid THEN $${i * 2 + 3}`
@@ -307,7 +166,8 @@ async function main() {
               UPDATE kaia_2048_users
               SET eni_wallet_address = CASE id
                 ${caseStatements}
-              END
+              END,
+              line_points = 2
               WHERE id = ANY($1::uuid[])
             `,
             values: updateParams

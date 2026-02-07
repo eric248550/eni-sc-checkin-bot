@@ -238,14 +238,15 @@ async function main() {
     console.log('STEP 2: Calculating check-in distribution');
     console.log('='.repeat(60));
     
-    const REFILL_AMOUNT = 0.0165; // EGAS refill amount for new wallets
+    const REFILL_AMOUNT = 0.0165; // EGAS refill amount for all wallets
     const CHECKIN_COST = 0.005; // Approximate EGAS cost per check-in
     
     // Tag wallets as new or old and calculate max check-ins
+    // ALL wallets will be refilled, so effectiveBalance = current + REFILL_AMOUNT
     const walletPlan = allWallets.map(wallet => {
       const receivedAmount = Number(wallet.received_amount);
       const isNewWallet = receivedAmount === 0;
-      const effectiveBalance = isNewWallet ? REFILL_AMOUNT : receivedAmount;
+      const effectiveBalance = receivedAmount + REFILL_AMOUNT; // Old wallets keep their balance + refill
       const maxCheckins = Math.floor(effectiveBalance / CHECKIN_COST);
       
       return {
@@ -261,12 +262,16 @@ async function main() {
 
     // Calculate total possible check-ins
     const totalPossibleCheckins = walletPlan.reduce((sum, w) => sum + w.maxCheckins, 0);
+    const totalWalletsCount = walletPlan.length; // ALL wallets need refill now
     const newWalletsCount = walletPlan.filter(w => w.isNewWallet).length;
-    const totalPossibleInteractions = totalPossibleCheckins + newWalletsCount; // checkins + refills
+    const oldWalletsCount = walletPlan.length - newWalletsCount;
+    const totalPossibleInteractions = totalPossibleCheckins + totalWalletsCount; // checkins + refills (all wallets)
     
     console.log(`\n📊 Capacity Analysis:`);
     console.log(`   Total possible check-ins: ${totalPossibleCheckins}`);
     console.log(`   New wallet refills: ${newWalletsCount}`);
+    console.log(`   Old wallet refills: ${oldWalletsCount}`);
+    console.log(`   Total refills needed: ${totalWalletsCount}`);
     console.log(`   Total possible interactions: ${totalPossibleInteractions}`);
     console.log(`   Target interactions: ${todayTarget.totalInteractions}`);
     
@@ -276,7 +281,7 @@ async function main() {
     }
     
     // Distribute check-ins across wallets randomly
-    let remainingInteractions = todayTarget.totalInteractions - newWalletsCount; // Subtract refills
+    let remainingInteractions = todayTarget.totalInteractions - totalWalletsCount; // Subtract ALL refills
     
     for (const wallet of walletPlan) {
       if (remainingInteractions <= 0) break;
@@ -311,8 +316,10 @@ async function main() {
     const totalAssignedCheckins = shuffledWallets.reduce((sum, w) => sum + w.assignedCheckins, 0);
     console.log(`\n📊 Distribution:`);
     console.log(`   Assigned check-ins: ${totalAssignedCheckins}`);
-    console.log(`   Refills: ${newWalletsCount}`);
-    console.log(`   Total assigned interactions: ${totalAssignedCheckins + newWalletsCount}`);
+    console.log(`   New wallet refills: ${newWalletsCount}`);
+    console.log(`   Old wallet refills: ${oldWalletsCount}`);
+    console.log(`   Total refills: ${totalWalletsCount}`);
+    console.log(`   Total assigned interactions: ${totalAssignedCheckins + totalWalletsCount}`);
     
     // STEP 3: Execute refills and check-ins in parallel batches
     console.log('\n' + '='.repeat(60));
@@ -343,19 +350,14 @@ async function main() {
     const readyQueue = []; // Wallets ready for check-in
     const pendingRefills = []; // New wallets needing refill
     
-    // Separate wallets into refill queue and ready queue
+    // ALL wallets (new + old) need refill first
     for (const wallet of shuffledWallets) {
       wallet.remainingCheckins = wallet.assignedCheckins;
-      
-      if (wallet.isNewWallet) {
-        pendingRefills.push(wallet);
-      } else {
-        readyQueue.push(wallet);
-      }
+      pendingRefills.push(wallet); // Both new and old wallets go to refill queue
     }
     
     console.log(`📋 Initial Queue Status:`);
-    console.log(`   Pending refills: ${pendingRefills.length}`);
+    console.log(`   Pending refills: ${pendingRefills.length} (new + old wallets)`);
     console.log(`   Ready for check-in: ${readyQueue.length}`);
     console.log(`   Target interactions: ${todayTarget.totalInteractions.toLocaleString()}\n`);
     
@@ -377,14 +379,15 @@ async function main() {
             const result = await refillEGAS(wallet.user_id, wallet.address);
             if (result.success) {
               wallet.hasBeenRefilled = true;
-              wallet.effectiveBalance = REFILL_AMOUNT;
+              // effectiveBalance was already calculated as received_amount + REFILL_AMOUNT
+              // No need to change it here
               wallet.readyAt = Date.now() + REFILL_COOLDOWN_MS;
               cooldownQueue.push(wallet);
               refillSuccessCount++;
               totalSuccessfulInteractions++;
               
               // Track daily metrics after successful refill
-              // task_page_view: Random(3,5), task_unique_view: Random(3,5), shop_page_view: Random(2,5), shop_unique_view: Random(1,4)
+              // task_page_view: Random(3,4), task_unique_view: Random(2,3), shop_page_view: Random(3,5), shop_unique_view: Random(1,2)
               await trackRefillMetrics();
               
               return { success: true, wallet };

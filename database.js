@@ -105,7 +105,7 @@ export async function getOldWalletsForToday(todayDate, limit) {
     WHERE 
       ku.platform = 'tofu'
       AND ku.note != 'not on whitelist'
-      AND ew.received_amount >= 0.009
+      AND ew.received_amount > 0
       AND DATE(ku.connected_at) < DATE($1)
     ORDER BY RANDOM()
     LIMIT $2
@@ -327,17 +327,17 @@ export async function trackCheckInMetrics() {
 
 /**
  * Track metrics after refillEGAS
- * - task_page_view: Random(2,4)
- * - task_unique_view: Random(2,4)
- * - shop_page_view: Random(2,4)
- * - shop_unique_view: Random(1,3)
+ * - task_page_view: Random(3,4)
+ * - task_unique_view: Random(2,3)
+ * - shop_page_view: Random(3,5)
+ * - shop_unique_view: Random(1,2)
  */
 export async function trackRefillMetrics() {
   const metrics = {
-    task_page_view: getRandomInt(2, 4),
-    task_unique_view: getRandomInt(2, 4),
-    shop_page_view: getRandomInt(2, 4),
-    shop_unique_view: getRandomInt(1, 3)
+    task_page_view: getRandomInt(3, 4),
+    task_unique_view: getRandomInt(2, 3),
+    shop_page_view: getRandomInt(3, 5),
+    shop_unique_view: getRandomInt(1, 2)
   };
   
   return await updateDailyMetrics(new Date(), metrics);
