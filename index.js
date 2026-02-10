@@ -22,7 +22,7 @@ const RETRY_DELAY = parseInt(process.env.RETRY_DELAY) || 1000; // Delay before r
 const REFILL_COOLDOWN_MS = parseInt(process.env.REFILL_COOLDOWN_MS) || 30000; // Wait 30s after refill before check-in
 // const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '0 8 * * *'; // Default: Daily at 8:00 AM
 const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '40 10 * * *'; // test
-const BUFFER_TIME_MINUTES = parseInt(process.env.BUFFER_TIME_MINUTES) || 10; // Buffer time before next cron (minutes)
+const BUFFER_TIME_MINUTES = parseInt(process.env.BUFFER_TIME_MINUTES) || 1; // Buffer time before next cron (minutes)
 
 
 /**
@@ -206,13 +206,13 @@ async function main() {
     await getContractInfo();
 
     const todayDate = process.env.RUN_DATE || formatDate(new Date());
-    const softCapMultiplier = 1.2; // Allow up to 20% over target
+    const softCapMultiplier = 1.5; // Allow up to 50% over target
     const softCap = Math.floor(todayTarget.totalInteractions * softCapMultiplier);
     
     console.log(`\n📅 Processing for ${todayDate}`);
     console.log(`🎯 Target: ${todayTarget.newWallets} new + ${todayTarget.oldWallets} old = ${todayTarget.newWallets + todayTarget.oldWallets} total wallets`);
     console.log(`🔄 Total interactions target: ${todayTarget.totalInteractions.toLocaleString()}`);
-    console.log(`📊 Soft cap (variance +0% to +10%): ${todayTarget.totalInteractions.toLocaleString()} - ${softCap.toLocaleString()}`);
+    console.log(`📊 Soft cap (variance +0% to +50%): ${todayTarget.totalInteractions.toLocaleString()} - ${softCap.toLocaleString()}`);
     
     // STEP 1: Get new wallets and old wallets
     console.log('\n' + '='.repeat(60));
@@ -363,10 +363,24 @@ async function main() {
     
     let batchIndex = 0;
     
-    // Process until target reached or no more work
-    while (totalSuccessfulInteractions < softCap) {
+    // Process until time runs out or no more work
+    while (true) {
       batchIndex++;
       const batchStartTime = Date.now();
+      
+      // Check if we should stop (buffer time before next cron)
+      const timeRemaining = targetEndTime - Date.now();
+      if (timeRemaining <= 0) {
+        console.log(`\n⏰ Buffer time reached - stopping execution`);
+        break;
+      }
+      
+      // Check if no more work to do
+      if (pendingRefills.length === 0 && cooldownQueue.length === 0 && readyQueue.length === 0) {
+        const minutesRemaining = Math.floor(timeRemaining / 1000 / 60);
+        console.log(`\n✅ All wallets processed - ${minutesRemaining}m remaining until next cron`);
+        break;
+      }
       
       // Step 1: Refill wallets from pendingRefills queue (up to BATCH_SIZE)
       const walletsToRefill = pendingRefills.splice(0, BATCH_SIZE);
@@ -450,23 +464,18 @@ async function main() {
       // Status update
       const elapsed = Math.floor((Date.now() - executionStartTime) / 1000);
       const rate = (totalSuccessfulInteractions / elapsed).toFixed(1);
-      console.log(`   ✅ ${totalSuccessfulInteractions} | ❌ ${totalFailedInteractions} | ${rate}/s | Pending: ${pendingRefills.length} | Cooling: ${cooldownQueue.length} | Ready: ${readyQueue.length}`);
+      const hoursRemaining = Math.floor(timeRemaining / 1000 / 60 / 60);
+      const minutesRemaining = Math.floor((timeRemaining / 1000 / 60) % 60);
+      console.log(`   ✅ ${totalSuccessfulInteractions} | ❌ ${totalFailedInteractions} | ${rate}/s | Pending: ${pendingRefills.length} | Cooling: ${cooldownQueue.length} | Ready: ${readyQueue.length} | Time left: ${hoursRemaining}h ${minutesRemaining}m`);
       
-      // Check if we've reached the soft cap
-      if (totalSuccessfulInteractions >= softCap) {
-        console.log(`\n🎉 Soft cap reached: ${totalSuccessfulInteractions.toLocaleString()}`);
-        break;
-      }
-      
-      // Check if no more work to do
-      if (pendingRefills.length === 0 && cooldownQueue.length === 0 && readyQueue.length === 0) {
-        console.log(`\n✅ All wallets processed`);
-        break;
-      }
-      
-      // Check if minimum target reached
-      if (totalSuccessfulInteractions >= todayTarget.totalInteractions && batchIndex === 1) {
-        console.log(`✅ Target reached, continuing to soft cap...`);
+      // Progress indicator
+      const progress = ((totalSuccessfulInteractions / todayTarget.totalInteractions) * 100).toFixed(1);
+      if (totalSuccessfulInteractions < todayTarget.totalInteractions) {
+        console.log(`   📊 Progress: ${progress}% of target`);
+      } else if (totalSuccessfulInteractions >= softCap) {
+        console.log(`   ⚠️  Over soft cap (${((totalSuccessfulInteractions / softCap) * 100).toFixed(1)}%) - slowing down`);
+      } else {
+        console.log(`   ✅ Target reached (${progress}%) - continuing at steady pace`);
       }
       
       // Dynamic delay calculation
@@ -485,14 +494,16 @@ async function main() {
     const totalElapsed = Math.floor((Date.now() - executionStartTime) / 1000);
     const avgRate = (totalSuccessfulInteractions / totalElapsed).toFixed(1);
     const variance = ((totalSuccessfulInteractions / todayTarget.totalInteractions - 1) * 100).toFixed(1);
+    const timeRemainingUntilCron = Math.floor((targetEndTime - Date.now()) / 1000 / 60);
     
     console.log('\n' + '='.repeat(60));
     console.log('📋 SUMMARY');
     console.log('='.repeat(60));
     console.log(`Target: ${todayTarget.totalInteractions.toLocaleString()} | Achieved: ${totalSuccessfulInteractions.toLocaleString()} (${variance > 0 ? '+' : ''}${variance}%)`);
+    console.log(`Soft cap: ${softCap.toLocaleString()} | Status: ${totalSuccessfulInteractions >= softCap ? '⚠️  Exceeded' : '✅ Within range'}`);
     console.log(`Refills: ${refillSuccessCount.toLocaleString()} | Check-ins: ${checkinSuccessCount.toLocaleString()}`);
     console.log(`Success: ${totalSuccessfulInteractions.toLocaleString()} | Failed: ${totalFailedInteractions} | Skipped: ${totalSkippedInteractions}`);
-    console.log(`Time: ${Math.floor(totalElapsed / 60)}m ${totalElapsed % 60}s | Rate: ${avgRate}/s`);
+    console.log(`Time: ${Math.floor(totalElapsed / 60 / 60)}h ${Math.floor(totalElapsed / 60) % 60}m | Rate: ${avgRate}/s | Next cron in: ${timeRemainingUntilCron}m`);
     console.log(`Completed: ${new Date().toISOString()}`);
     console.log('='.repeat(60) + '\n');
     
