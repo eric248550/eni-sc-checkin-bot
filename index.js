@@ -44,15 +44,13 @@ function chunkArray(array, size) {
 }
 
 /**
- * Calculate time until next cron execution
+ * Calculate time until next cron execution (using local timezone)
  */
 function getTimeUntilNextCron(cronSchedule) {
   try {
-    // Use the same timezone as cron scheduler to avoid mismatch
-    const timezone = process.env.TIMEZONE || "Asia/Singapore";
+    // Use local system timezone
     const interval = parser.parseExpression(cronSchedule, {
-      currentDate: new Date(),
-      tz: timezone
+      currentDate: new Date()
     });
     const nextRun = interval.next().toDate();
     const now = new Date();
@@ -555,15 +553,14 @@ if (RUN_ONCE) {
     });
   }
 
-  // Schedule the cron job
+  // Schedule the cron job (using local system timezone)
   const task = cron.schedule(CRON_SCHEDULE, () => {
     console.log('\n⏰ Cron triggered at:', new Date().toISOString());
     main().catch(error => {
       console.error('❌ Cron job error:', error);
     });
   }, {
-    scheduled: true,
-    timezone: process.env.TIMEZONE || "Asia/Singapore" // UTC+8 timezone
+    scheduled: true
   });
 
   // Keep the process alive

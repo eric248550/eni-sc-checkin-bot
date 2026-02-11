@@ -2,6 +2,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import { formatDate } from './constants.js';
 
 dotenv.config();
 
@@ -258,12 +259,13 @@ function getRandomInt(min, max) {
 }
 
 /**
- * Insert or update daily metrics for kaia_2048_daily_metrics
+ * Insert or update daily metrics for kaia_2048_daily_metrics (using local system timezone)
  * @param {Date} date - The date for the metrics
  * @param {Object} metrics - Object with metric increments { task_page_view, task_unique_view, shop_page_view, shop_unique_view }
  */
 export async function updateDailyMetrics(date, metrics) {
-  const dateStr = date.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+  // Use formatDate with local system timezone
+  const dateStr = formatDate(date);
   
   // Build the update query using EXCLUDED to reference INSERT values
   const updates = [];

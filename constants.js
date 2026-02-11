@@ -442,7 +442,7 @@ export function getTodayTarget() {
 }
 
 /**
- * Format date to YYYY-MM-DD
+ * Format date to YYYY-MM-DD (using local system timezone)
  * @param {Date|string} date - Date object or string
  * @returns {string} Formatted date string
  */

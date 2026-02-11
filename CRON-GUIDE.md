@@ -6,14 +6,21 @@ The bot now supports scheduled execution using `node-cron`. The bot will run con
 
 **Set up your cron schedule in `.env`**:
 ```bash
-# Run daily at 9:00 AM
+# Run daily at 9:00 AM (using local system timezone)
 CRON_SCHEDULE=0 9 * * *
-
-# Optional: Set your timezone
-TIMEZONE=America/Los_Angeles
 
 # Optional: Run immediately on startup
 RUN_ON_STARTUP=true
+```
+
+**Important**: The bot uses your **local system timezone**. Make sure your server/computer timezone is set correctly:
+```bash
+# Check current timezone
+timedatectl  # Linux
+date         # macOS/Linux
+
+# Set timezone (Linux example)
+sudo timedatectl set-timezone Asia/Singapore
 ```
 
 ## Running in Production
