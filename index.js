@@ -1,5 +1,4 @@
 import cron from 'node-cron';
-import parser from 'cron-parser';
 import { 
   getEligibleWallets, 
   getNewWalletsForToday, 
@@ -48,13 +47,30 @@ function chunkArray(array, size) {
  */
 function getTimeUntilNextCron(cronSchedule) {
   try {
-    // Use local system timezone
-    const interval = parser.parseExpression(cronSchedule, {
-      currentDate: new Date()
-    });
-    const nextRun = interval.next().toDate();
     const now = new Date();
+    const parts = cronSchedule.trim().split(/\s+/);
+    
+    if (parts.length < 5) {
+      throw new Error('Invalid cron schedule format');
+    }
+    
+    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+    
+    // Parse the cron schedule (simplified for daily schedules)
+    const targetMinute = parseInt(minute);
+    const targetHour = parseInt(hour);
+    
+    // Calculate next run time in local timezone
+    let nextRun = new Date(now);
+    nextRun.setHours(targetHour, targetMinute, 0, 0);
+    
+    // If the time has passed today, schedule for tomorrow
+    if (nextRun <= now) {
+      nextRun.setDate(nextRun.getDate() + 1);
+    }
+    
     const msUntilNext = nextRun.getTime() - now.getTime();
+    
     return {
       milliseconds: msUntilNext,
       seconds: Math.floor(msUntilNext / 1000),
@@ -543,7 +559,7 @@ if (RUN_ONCE) {
   // Scheduled execution with node-cron
   console.log('🤖 ENI Check-in Bot - Cron Scheduler Started');
   console.log(`📅 Schedule: ${CRON_SCHEDULE}`);
-  console.log(`⏰ Next run: ${new Date().toISOString()}\n`);
+  console.log(`⏰ Current time: ${new Date().toISOString()}\n`);
 
   // Optional: Run immediately on startup if RUN_ON_STARTUP is true
   if (RUN_ON_STARTUP) {

@@ -52,3 +52,8 @@ pm2 save
 ```bash
 pm2 stop eni-checkin-bot
 ```
+
+6. restart
+```bash
+pm2 restart eni-checkin-bot
+```
