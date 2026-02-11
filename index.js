@@ -22,7 +22,7 @@ const RETRY_DELAY = parseInt(process.env.RETRY_DELAY) || 1000; // Delay before r
 const REFILL_COOLDOWN_MS = parseInt(process.env.REFILL_COOLDOWN_MS) || 30000; // Wait 30s after refill before check-in
 // const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '0 8 * * *'; // Default: Daily at 8:00 AM
 const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '40 10 * * *'; // test
-const BUFFER_TIME_MINUTES = parseInt(process.env.BUFFER_TIME_MINUTES) || 1; // Buffer time before next cron (minutes)
+const BUFFER_TIME_MINUTES = parseInt(process.env.BUFFER_TIME_MINUTES) || 5; // Buffer time before next cron (minutes)
 
 
 /**
@@ -48,7 +48,12 @@ function chunkArray(array, size) {
  */
 function getTimeUntilNextCron(cronSchedule) {
   try {
-    const interval = parser.parseExpression(cronSchedule);
+    // Use the same timezone as cron scheduler to avoid mismatch
+    const timezone = process.env.TIMEZONE || "Asia/Singapore";
+    const interval = parser.parseExpression(cronSchedule, {
+      currentDate: new Date(),
+      tz: timezone
+    });
     const nextRun = interval.next().toDate();
     const now = new Date();
     const msUntilNext = nextRun.getTime() - now.getTime();
